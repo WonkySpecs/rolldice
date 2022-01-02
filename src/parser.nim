@@ -16,7 +16,7 @@ type
       roll*: Roll
     of Assignment:
       identifier*: string
-      value: Roll
+      value*: Roll
     of Meta:
       command*: MetaCommand
 
@@ -51,7 +51,7 @@ func parseCommand(input: string): ParsedLine =
     of ParseError: parsed
     of Roll: ParsedLine(
       kind: Assignment,
-      identifier:splitCmd[0],
+      identifier: splitCmd[0].strip(),
       value: parsed.roll)
     else:
       raise newException(Defect, "parseRoll returned something other than error/a roll when trying to parsed an assignment")
