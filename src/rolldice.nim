@@ -85,7 +85,7 @@ when isMainModule:
       of ParseResultKind.Roll:
         echo execRoll(parsed.roll)
       of Assignment:
-        assigned[parsed.identifier] = parsed.value
+        assigned[parsed.identifier] = normalizeRoll(parsed.value)
 
     previous = parsed
 
