@@ -65,11 +65,15 @@ when isMainModule:
             echo "Clearing..."
             roller.clearMemory()
       of ParseResultKind.Roll:
-        var info = ""
-        if roller.verbose:
-          let (a, b) = roller.rollResultRange(parsed.roll)
-          info = &" ({a}-{b})"
-        echo &"{roller.exec(parsed.roll)}{info}"
+        let roll = roller.normalize(parsed.roll)
+        if roll.parts.len == 0:
+          echo "Unknown identifier"
+        else:
+          var info = ""
+          if roller.verbose:
+            let (a, b) = roller.rollResultRange(roll)
+            info = &" ({a}-{b})"
+          echo &"{roller.exec(roll)}{info}"
       of Assignment:
         if not roller.tryAssign(parsed.identifier, parsed.value):
           echo "Assignment failed, unknown identifier included"

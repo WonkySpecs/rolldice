@@ -37,14 +37,11 @@ proc normalize*(roller: RollMachine, roll: Roll): Roll =
           vals.add part.num
           counts[part.sides] = vals
         of Identifier:
-          if not roller.assigned.hasKey(part.identifier):
-            echo "Warning: No saved value for '" & part.identifier & "'"
-          else:
-            let nested = normalize(roller.assigned[part.identifier])
-            for k, v in nested:
-              var vals = counts.getOrDefault(k, newSeq[int]())
-              vals = vals & v
-              counts[k] = vals
+          let nested = normalize(roller.getRoll(part.identifier))
+          for k, v in nested:
+            var vals = counts.getOrDefault(k, newSeq[int]())
+            vals = vals & v
+            counts[k] = vals
     counts
 
   let asTable = normalize(roll)
