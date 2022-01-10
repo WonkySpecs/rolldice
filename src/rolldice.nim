@@ -38,10 +38,8 @@ proc exec(roller: RollMachine, part: RollPart): int =
 proc exec(roller: RollMachine, roll: Roll): int =
   roll.parts.map(p => roller.exec(p)).foldl(a + b)
 
-const helpText = "'q' to quit, 'XdY' to roll X dice with Y sides, blank to repeat the last line, 'dmg = d12 + 5' to store a roll, then run with 'dmg'"
-
 when isMainModule:
-  echo helpText
+  echo "Get rolling, or enter 'help' for help"
   var quit = false
   var previous = ParsedLine(kind: ParseResultKind.Roll,
     roll: types.Roll(parts: @[RollPart(kind: DiceRoll, num: 1, sides: 20)]))
@@ -55,7 +53,14 @@ when isMainModule:
       of Meta:
         case parsed.command:
           of Quit: quit = true
-          of Help: echo helpText
+          of Help:
+            echo "'XdY' rolls X dice with Y sides. Add rolls and modifiers with '+'"
+            echo "Save a roll using 'a = d20 + 6', then reroll with 'a'"
+            echo "Enter an empty line to repeat the last roll/command"
+            echo ""
+            echo "Commands:"
+            echo "-----"
+            printCommandHelp()
           of Print:
             roller.print()
           of ToggleVerbose:

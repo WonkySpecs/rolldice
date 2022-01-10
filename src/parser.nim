@@ -1,4 +1,4 @@
-import std / [strutils, sequtils, sugar, re]
+import std / [strutils, sequtils, sugar, strformat, re]
 import types
 
 type
@@ -22,9 +22,17 @@ type
 
 const quit_commands = ["q", "quit", "exit", "bye"]
 const help_commands = ["h", "help", "?"]
-const print_commands = ["print"]
+const print_commands = ["p", "print"]
 const toggle_verbose_commands = ["v", "verbose"]
 const clear_commands = ["clear"]
+
+template echoCommand(s, l: untyped) = echo s & ": " & l.join(", ")
+proc printCommandHelp*() =
+  echoCommand("help", help_commands)
+  echoCommand("quit", quit_commands)
+  echoCommand("print", print_commands)
+  echoCommand("toggle verbose", toggle_verbose_commands)
+  echoCommand("clear memory", clear_commands)
 
 func parseRoll(input: string): ParsedLine =
   let parts = split(input, "+").mapIt($(it.strip()))
