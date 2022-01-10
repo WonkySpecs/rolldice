@@ -73,3 +73,4 @@ proc print*(roller: RollMachine) =
     for k, v in roller.assigned:
       echo &"{k}: {roller.normalize(v)}"
 
+proc clearMemory*(roller: var RollMachine) = roller.assigned.clear()

@@ -61,6 +61,9 @@ when isMainModule:
           of ToggleVerbose:
             roller.toggleVerbose()
             echo "Verbose mode " & (if roller.verbose: "on" else: "off")
+          of ClearMemory:
+            echo "Clearing..."
+            roller.clearMemory()
       of ParseResultKind.Roll:
         var info = ""
         if roller.verbose:
