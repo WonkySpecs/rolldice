@@ -1,86 +1,42 @@
-import std / [random, strutils, sequtils, sugar, rdstdin, tables, strformat]
-import types, parser
+import std / [random, strutils, sequtils, sugar, rdstdin, strformat]
+import types, parser, rollmachine
 
 randomize()
 
-var
-  assigned = initTable[string, types.Roll]()
-  verbose = true
+var roller = initRollMachine()
 
-proc rollResultRange(roll: Roll): (int, int) =
+proc rollResultRange(roller: RollMachine, roll: Roll): (int, int) =
   var
     rollMin = 0
     rollMax = 0
   for part in roll.parts:
-    debugEcho part
     case part.kind:
       of Modifier:
         rollMin += part.value
         rollMax += part.value
       of DiceRoll:
-        debugEcho "dice roll"
         rollMin += part.num
         rollMax += part.num * part.sides
       of Identifier:
-        if assigned.contains(part.identifier):
-          let (a, b) = rollResultRange(assigned[part.identifier])
-          rollMin += a
-          rollMax += b
+        let
+          resolved = roller.getRoll(part.identifier)
+          (a, b) = roller.rollResultRange(resolved)
+        rollMin += a
+        rollMax += b
 
   (rollMin, rollMax)
 
-proc execRoll(roll: Roll): int
-proc execPart(part: RollPart): int =
+proc exec(roller: RollMachine, roll: Roll): int
+proc exec(roller: RollMachine, part: RollPart): int =
   case part.kind:
     of Modifier: part.value
     of DiceRoll:
       toSeq(1..part.num).map(i => rand(part.sides - 1) + 1).foldl(a + b)
     of Identifier:
-      if assigned.contains(part.identifier):
-        execRoll(assigned[part.identifier])
-      else:
-        echo "Warning: No saved value for '" & part.identifier & "'"
-        0
+      roller.exec(roller.getRoll(part.identifier))
 
-proc execRoll(roll: Roll): int =
-  roll.parts.map(execPart).foldl(a + b)
-
-proc normalizeRoll(roll: Roll): Roll =
-  ## Turn a roll into it's simplest form, combining multiple of the same parts and
-  ## resolving symbols
-
-  proc normalize(roll: Roll): Table[int, seq[int]] =
-    # number of sides:
-    var counts = initTable[int, seq[int]]()
-    for part in roll.parts:
-      case part.kind:
-        of Modifier:
-          var vals = counts.getOrDefault(0, newSeq[int]())
-          vals.add part.value
-          counts[0] = vals
-        of DiceRoll:
-          var vals = counts.getOrDefault(part.sides, newSeq[int]())
-          vals.add part.num
-          counts[part.sides] = vals
-        of Identifier:
-          if not assigned.hasKey(part.identifier):
-            echo "Warning: No saved value for '" & part.identifier & "'"
-          else:
-            let nested = normalize(assigned[part.identifier])
-            for k, v in nested:
-              var vals = counts.getOrDefault(k, newSeq[int]())
-              vals = vals & v
-              counts[k] = vals
-    counts
-
-  let asTable = normalize(roll)
-  var parts = newSeq[RollPart]()
-  for k, v in asTable:
-    parts.add(if k == 0:
-        RollPart(kind: Modifier, value: v.foldl(a + b))
-      else:
-        RollPart(kind: DiceRoll, sides: k, num: v.foldl(a + b)))
-  Roll(parts: parts)
+proc exec(roller: RollMachine, roll: Roll): int =
+  roll.parts.map(p => roller.exec(p)).foldl(a + b)
 
 const helpText = "'q' to quit, 'XdY' to roll X dice with Y sides, blank to repeat the last line, 'dmg = d12 + 5' to store a roll, then run with 'dmg'"
 
@@ -101,21 +57,19 @@ when isMainModule:
           of Quit: quit = true
           of Help: echo helpText
           of Print:
-            if len(assigned) == 0: echo "Nothing saved yet"
-            else:
-              for k, v in assigned:
-                echo &"{k}: {normalizeRoll(v)}"
+            roller.print()
           of ToggleVerbose:
-            verbose = not verbose
-            echo "Verbose mode " & (if verbose: "on" else: "off")
+            roller.toggleVerbose()
+            echo "Verbose mode " & (if roller.verbose: "on" else: "off")
       of ParseResultKind.Roll:
         var info = ""
-        if verbose:
-          let (a, b) = rollResultRange(parsed.roll)
+        if roller.verbose:
+          let (a, b) = roller.rollResultRange(parsed.roll)
           info = &" ({a}-{b})"
-        echo &"{execRoll(parsed.roll)}{info}"
+        echo &"{roller.exec(parsed.roll)}{info}"
       of Assignment:
-        assigned[parsed.identifier] = normalizeRoll(parsed.value)
+        if not roller.tryAssign(parsed.identifier, parsed.value):
+          echo "Assignment failed, unknown identifier included"
 
     previous = parsed
 
