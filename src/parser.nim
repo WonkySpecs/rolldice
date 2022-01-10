@@ -3,7 +3,7 @@ import types
 
 type
   MetaCommand* = enum
-    Quit, Help, Print
+    Quit, Help, Print, ToggleVerbose
 
   ParseResultKind* = enum
     ParseError, Assignment, Roll, Meta
@@ -23,6 +23,7 @@ type
 const quit_commands = ["q", "quit", "exit", "bye"]
 const help_commands = ["h", "help", "?"]
 const print_commands = ["p", "print"]
+const toggle_verbose_commands = ["v", "verbose"]
 
 func parseRoll(input: string): ParsedLine =
   let parts = split(input, "+").mapIt($(it.strip()))
@@ -60,12 +61,14 @@ func parseCommand(input: string): ParsedLine =
     parseRoll(input.strip())
 
 func parse*(input: string): ParsedLine =
-  let lower = toLower(input)
+  let lower = toLower(input).strip()
   if any(quit_commands, c => c == lower):
     ParsedLine(kind: Meta, command: Quit)
   elif any(help_commands, c => c == lower):
     ParsedLine(kind: Meta, command: Help)
   elif any(print_commands, c => c == lower):
     ParsedLine(kind: Meta, command: Print)
+  elif any(toggle_verbose_commands, c => c == lower):
+    ParsedLine(kind: Meta, command: ToggleVerbose)
   else:
     parseCommand(lower)

@@ -5,6 +5,29 @@ randomize()
 
 var
   assigned = initTable[string, types.Roll]()
+  verbose = true
+
+proc rollResultRange(roll: Roll): (int, int) =
+  var
+    rollMin = 0
+    rollMax = 0
+  for part in roll.parts:
+    debugEcho part
+    case part.kind:
+      of Modifier:
+        rollMin += part.value
+        rollMax += part.value
+      of DiceRoll:
+        debugEcho "dice roll"
+        rollMin += part.num
+        rollMax += part.num * part.sides
+      of Identifier:
+        if assigned.contains(part.identifier):
+          let (a, b) = rollResultRange(assigned[part.identifier])
+          rollMin += a
+          rollMax += b
+
+  (rollMin, rollMax)
 
 proc execRoll(roll: Roll): int
 proc execPart(part: RollPart): int =
@@ -82,8 +105,15 @@ when isMainModule:
             else:
               for k, v in assigned:
                 echo &"{k}: {normalizeRoll(v)}"
+          of ToggleVerbose:
+            verbose = not verbose
+            echo "Verbose mode " & (if verbose: "on" else: "off")
       of ParseResultKind.Roll:
-        echo execRoll(parsed.roll)
+        var info = ""
+        if verbose:
+          let (a, b) = rollResultRange(parsed.roll)
+          info = &" ({a}-{b})"
+        echo &"{execRoll(parsed.roll)}{info}"
       of Assignment:
         assigned[parsed.identifier] = normalizeRoll(parsed.value)
 
