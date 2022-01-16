@@ -1,4 +1,4 @@
-import std / [parsecsv, tables, os]
+import std / [parsecsv, tables, os, sequtils]
 import types, parser
 
 const cfgDir = expandTilde("~" / ".rolldice")
@@ -33,3 +33,10 @@ proc load*(name: string): Table[string, Roll] =
         echo "oh no"
 
   csv.close()
+
+proc listSaves*(): seq[string] =
+  if not dirExists(cfgDir):
+    return
+
+  result = toSeq(walkFiles(cfgDir / "*"))
+    .map(extractFilename)

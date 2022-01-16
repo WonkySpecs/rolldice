@@ -1,5 +1,5 @@
 import std / [random, strutils, sequtils, sugar, rdstdin, strformat]
-import types, parser, rollmachine
+import types, parser, rollmachine, saves
 
 randomize()
 
@@ -79,6 +79,13 @@ when isMainModule:
               echo "Must specify profile to load, ie. 'load savename'"
             else:
               roller.load(parsed.args[0])
+          of List:
+            let saves = listSaves()
+            if saves.len == 0:
+              echo "No saved profiles"
+            else:
+              for s in saves:
+                echo s
       of prkRoll:
         let roll = roller.normalize(parsed.roll)
         if roll.parts.len == 0:

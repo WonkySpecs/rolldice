@@ -3,7 +3,7 @@ import types
 
 type
   MetaCommand* = enum
-    Quit, Help, Print, ToggleVerbose, ClearMemory, Save, Load
+    Quit, Help, Print, ToggleVerbose, ClearMemory, Save, Load, List
 
   ParseResultKind* = enum
     prkParseError, prkAssignment, prkRoll, prkMeta
@@ -28,7 +28,8 @@ const commands = {
   ToggleVerbose: @["verbose", "v"],
   ClearMemory: @["clear"],
   Save: @["save"],
-  Load: @["load"]
+  Load: @["load"],
+  List: @["list"],
 }.toTable
 
 proc printCommandHelp*() =
