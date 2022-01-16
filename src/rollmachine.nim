@@ -1,5 +1,5 @@
 import std / [tables, sugar, sequtils, strformat]
-import types
+import types, saves
 
 type
   RollMachine* = object
@@ -71,3 +71,10 @@ proc print*(roller: RollMachine) =
       echo &"{k}: {roller.normalize(v)}"
 
 proc clearMemory*(roller: var RollMachine) = roller.assigned.clear()
+
+proc save*(roller: RollMachine, name: string) = save(name, roller.assigned)
+
+proc load*(roller: var RollMachine, name: string) =
+  let loaded = load(name)
+  if loaded.len > 0:
+    roller.assigned = loaded

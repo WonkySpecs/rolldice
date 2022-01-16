@@ -41,16 +41,16 @@ proc exec(roller: RollMachine, roll: Roll): int =
 when isMainModule:
   echo "Get rolling, or enter 'help' for help"
   var quit = false
-  var previous = ParsedLine(kind: ParseResultKind.Roll,
-    roll: types.Roll(parts: @[RollPart(kind: DiceRoll, num: 1, sides: 20)]))
+  var previous = ParsedLine(kind: prkRoll,
+    roll: Roll(parts: @[RollPart(kind: DiceRoll, num: 1, sides: 20)]))
 
   while not quit:
     let line = readLineFromStdin("> ")
     let parsed = if line.isEmptyOrWhitespace(): previous else: parse(line)
 
     case parsed.kind:
-      of ParseError: echo parsed.message
-      of Meta:
+      of prkParseError: echo parsed.message
+      of prkMeta:
         case parsed.command:
           of Quit: quit = true
           of Help:
@@ -69,7 +69,17 @@ when isMainModule:
           of ClearMemory:
             echo "Clearing..."
             roller.clearMemory()
-      of ParseResultKind.Roll:
+          of Save:
+            if parsed.args.len == 0:
+              echo "Must specify a name, ie. 'save savename'"
+            else:
+              roller.save(parsed.args[0])
+          of Load:
+            if parsed.args.len == 0:
+              echo "Must specify profile to load, ie. 'load savename'"
+            else:
+              roller.load(parsed.args[0])
+      of prkRoll:
         let roll = roller.normalize(parsed.roll)
         if roll.parts.len == 0:
           echo "Unknown identifier"
@@ -79,7 +89,7 @@ when isMainModule:
             let (a, b) = roller.rollResultRange(roll)
             info = &" ({a}-{b})"
           echo &"{roller.exec(roll)}{info}"
-      of Assignment:
+      of prkAssignment:
         if not roller.tryAssign(parsed.identifier, parsed.value):
           echo "Assignment failed, unknown identifier included"
 
