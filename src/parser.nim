@@ -1,4 +1,4 @@
-import std / [strutils, sequtils, sugar, strformat, re]
+import std / [strutils, sequtils, sugar, re, tables]
 import types
 
 type
@@ -21,21 +21,19 @@ type
       command*: MetaCommand
       args*: seq[string]
 
-const quit_commands = ["q", "quit", "exit", "bye"]
-const help_commands = ["h", "help", "?"]
-const print_commands = ["p", "print"]
-const toggle_verbose_commands = ["v", "verbose"]
-const clear_commands = ["clear"]
-const save_commands = ["save"]
-const load_commands = ["load"]
+const commands = {
+  Quit: @["quit", "q", "exit", "bye"],
+  Help: @["help", "h", "?"],
+  Print: @["print"],
+  ToggleVerbose: @["verbose", "v"],
+  ClearMemory: @["clear"],
+  Save: @["save"],
+  Load: @["load"]
+}.toTable
 
-template echoCommand(s, l: untyped) = echo s & ": " & l.join(", ")
 proc printCommandHelp*() =
-  echoCommand("help", help_commands)
-  echoCommand("quit", quit_commands)
-  echoCommand("print", print_commands)
-  echoCommand("toggle verbose", toggle_verbose_commands)
-  echoCommand("clear memory", clear_commands)
+  for k, v in commands:
+    echo $k & ": " & v.join(", ")
 
 func parseRoll*(input: string): ParsedLine =
   let parts = split(input, "+").mapIt($(it.strip()))
@@ -80,20 +78,8 @@ func parse*(input: string): ParsedLine =
     cmd = firstAndRest[0]
     rest = if firstAndRest.len > 1: firstAndRest[1].split() else: @[]
 
-  if any(quit_commands, c => c == cmd):
-    ParsedLine(kind: prkMeta, command: Quit)
-  elif any(help_commands, c => c == cmd):
-    ParsedLine(kind: prkMeta, command: Help)
-  elif any(print_commands, c => c == cmd):
-    ParsedLine(kind: prkMeta, command: Print)
-  elif any(toggle_verbose_commands, c => c == cmd):
-    ParsedLine(kind: prkMeta, command: ToggleVerbose)
-  elif any(clear_commands, c => c == cmd):
-    ParsedLine(kind: prkMeta, command: ClearMemory)
-  elif any(save_commands, c => c == cmd):
-    ParsedLine(kind: prkMeta, command: Save, args: rest)
-  elif any(load_commands, c => c == cmd):
-    ParsedLine(kind: prkMeta, command: Load, args: rest)
-  else:
-    # Doesn't match any meta commands, parse as roll or assignment
-    parseCommand(lower)
+  for k, v in commands:
+    if any(v, c => c == cmd):
+      return ParsedLine(kind: prkMeta, command: k, args: rest)
+  # Doesn't match any meta commands, parse as roll or assignment
+  parseCommand(lower)
