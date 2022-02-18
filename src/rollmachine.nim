@@ -1,17 +1,12 @@
-import std / [tables, sugar, sequtils, strformat, deques, options, strutils]
+import std / [tables, sugar, sequtils, strformat, deques, options, strutils, random]
 import types, saves
+
+randomize()
 
 type
   RollMachine* = object
     verbose*: bool
     assigned: Table[string, Roll]
-
-func initRollMachine*(): RollMachine =
-  RollMachine(verbose: true, assigned: initTable[string, Roll]())
-
-func isAssigned(roller: RollMachine, identifier: string): bool =
-  roller.assigned.contains(identifier)
-proc toggleVerbose*(roller: var RollMachine) = roller.verbose = not roller.verbose
 
 func getRoll*(roller: RollMachine, identifier: string): Roll =
   if roller.assigned.contains(identifier):
@@ -52,6 +47,42 @@ proc normalize*(roller: RollMachine, roll: Roll): Roll =
       else:
         RollPart(kind: DiceRoll, sides: k, num: v.foldl(a + b)))
   Roll(parts: parts)
+
+proc rollResultRange*(roller: RollMachine, roll: Roll): (int, int) =
+  var
+    rollMin = 0
+    rollMax = 0
+  for part in roller.normalize(roll).parts:
+    case part.kind:
+      of Modifier:
+        rollMin += part.value
+        rollMax += part.value
+      of DiceRoll:
+        rollMin += part.num
+        rollMax += part.num * part.sides
+      else:
+        debugEcho "Got an identifier in a normalized roll during rollResultRange"
+
+  (rollMin, rollMax)
+
+proc exec(roller: RollMachine, part: RollPart): int
+proc exec*(roller: RollMachine, roll: Roll): int =
+  roll.parts.map(p => roller.exec(p)).foldl(a + b)
+
+proc exec(roller: RollMachine, part: RollPart): int =
+  case part.kind:
+    of Modifier: part.value
+    of DiceRoll:
+      toSeq(1..part.num).map(i => rand(part.sides - 1) + 1).foldl(a + b)
+    of Identifier:
+      roller.exec(roller.getRoll(part.identifier))
+
+func initRollMachine*(): RollMachine =
+  RollMachine(verbose: true, assigned: initTable[string, Roll]())
+
+func isAssigned(roller: RollMachine, identifier: string): bool =
+  roller.assigned.contains(identifier)
+proc toggleVerbose*(roller: var RollMachine) = roller.verbose = not roller.verbose
 
 func referencesIdentifier(
   roller: RollMachine,

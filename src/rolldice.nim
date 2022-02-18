@@ -1,42 +1,7 @@
-import std / [random, strutils, sequtils, sugar, rdstdin, strformat]
+import std / [strutils, rdstdin, strformat]
 import types, parser, rollmachine, saves
 
-randomize()
-
 var roller = initRollMachine()
-
-proc rollResultRange(roller: RollMachine, roll: Roll): (int, int) =
-  var
-    rollMin = 0
-    rollMax = 0
-  for part in roll.parts:
-    case part.kind:
-      of Modifier:
-        rollMin += part.value
-        rollMax += part.value
-      of DiceRoll:
-        rollMin += part.num
-        rollMax += part.num * part.sides
-      of Identifier:
-        let
-          resolved = roller.getRoll(part.identifier)
-          (a, b) = roller.rollResultRange(resolved)
-        rollMin += a
-        rollMax += b
-
-  (rollMin, rollMax)
-
-proc exec(roller: RollMachine, roll: Roll): int
-proc exec(roller: RollMachine, part: RollPart): int =
-  case part.kind:
-    of Modifier: part.value
-    of DiceRoll:
-      toSeq(1..part.num).map(i => rand(part.sides - 1) + 1).foldl(a + b)
-    of Identifier:
-      roller.exec(roller.getRoll(part.identifier))
-
-proc exec(roller: RollMachine, roll: Roll): int =
-  roll.parts.map(p => roller.exec(p)).foldl(a + b)
 
 when isMainModule:
   echo "Get rolling, or enter 'help' for help"
