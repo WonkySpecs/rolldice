@@ -1,4 +1,4 @@
-import std / [tables, sugar, sequtils, strformat]
+import std / [tables, sugar, sequtils, strformat, deques, options, strutils]
 import types, saves
 
 type
@@ -53,22 +53,54 @@ proc normalize*(roller: RollMachine, roll: Roll): Roll =
         RollPart(kind: DiceRoll, sides: k, num: v.foldl(a + b)))
   Roll(parts: parts)
 
-proc tryAssign*(roller: var RollMachine, identifier: string, roll: Roll): bool =
-  ## Tries to save the roll as the given identifier in the roller
-  ## Returns false if any identifiers in the roll aren't assigned, otherwise
-  ## assigns and returns true
-  if roll.parts.filter(p => p.kind == Identifier)
-    .anyIt(not isAssigned(roller, it.identifier)):
-    return false
+func referencesIdentifier(
+  roller: RollMachine,
+  roll: Roll,
+  identifier: string): bool =
+  ## Checks whether a roll ever references 'identifier'
+  ## Does a breadth first search through the roll, expanding any identifier parts
 
-  roller.assigned[identifier] = roller.normalize(roll)
-  true
+  var toCheck = roll.parts.toDeque()
+  while toCheck.len > 0:
+    let part = toCheck.popFirst()
+    case part.kind:
+      of Identifier:
+        if part.identifier == identifier: return true
+        let subroll = roller.assigned[part.identifier]
+        for p in subroll.parts:
+          toCheck.addLast(p)
+      else: discard
+  return false
+
+func invalidAssignmentMessage(
+  roller: RollMachine,
+  identifier: string,
+  roll: Roll): Option[string] =
+  let unknownIdentifiers = roll.parts.filter(p => p.kind == Identifier)
+    .filter(p => not isAssigned(roller, p.identifier))
+    .map(p => p.identifier)
+
+  if unknownIdentifiers.len > 0:
+    return some(&"Unknown identifiers: [{unknownIdentifiers.join(\", \")}]")
+
+  if roller.referencesIdentifier(roll, identifier):
+    return some("Roll cannot include a reference to itself")
+  return none(string)
+
+proc tryAssign*(roller: var RollMachine, identifier: string, roll: Roll) =
+  ## Tries to save the roll as the given identifier in the roller
+  ## If it's invalid, prints an error message instead
+  let err = roller.invalidAssignmentMessage(identifier, roll)
+  if err.isSome:
+    echo err.get()
+  else:
+    roller.assigned[identifier] = roll
 
 proc print*(roller: RollMachine) =
   if len(roller.assigned) == 0: echo "Nothing saved yet"
   else:
     for k, v in roller.assigned:
-      echo &"{k}: {roller.normalize(v)}"
+      echo &"{k}: {v}"
 
 proc clearMemory*(roller: var RollMachine) = roller.assigned.clear()
 

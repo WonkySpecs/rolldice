@@ -96,9 +96,7 @@ when isMainModule:
             let (a, b) = roller.rollResultRange(roll)
             info = &" ({a}-{b})"
           echo &"{roller.exec(roll)}{info}"
-      of prkAssignment:
-        if not roller.tryAssign(parsed.identifier, parsed.value):
-          echo "Assignment failed, unknown identifier included"
+      of prkAssignment: roller.tryAssign(parsed.identifier, parsed.value)
 
     previous = parsed
 
