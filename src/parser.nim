@@ -1,4 +1,4 @@
-import std / [strutils, sequtils, sugar, re, tables]
+import std / [strutils, sequtils, sugar, re, tables, strformat]
 import types
 
 type
@@ -32,9 +32,21 @@ const commands = {
   List: @["list"],
 }.toTable
 
+const commandDescriptions = [
+  Quit: "Quit rolldice",
+  Help: "Show this help text",
+  Print: "Show the current list of saved rolls",
+  ToggleVerbose: "Toggle verbose output",
+  ClearMemory: "Clear the current list of saved rolls",
+  Save: "Save the list of saved rolls as a profile with the given name",
+  Load: "Load a previously saved profile using its name",
+  List: "List saved profiles"
+]
+
 proc printCommandHelp*() =
   for k, v in commands:
-    echo $k & ": " & v.join(", ")
+    let commandStringList = v.map(c => '"' & c & '"').join(", ")
+    echo &"[{commandStringList}]: {commandDescriptions[k]}"
 
 func parseRoll*(input: string): ParsedLine =
   let parts = split(input, "+").mapIt($(it.strip()))
