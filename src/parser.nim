@@ -45,6 +45,11 @@ const commandDescriptions = [
   SetVariable: "Set a variable value"
 ]
 
+# Compile time check that all commands have a description
+static: assert(
+  commandDescriptions.high == MetaCommand.high,
+  "Not all commands have a description in commandDescriptions")
+
 proc printCommandHelp*() =
   for k, v in commands:
     let commandStringList = v.map(c => '"' & c & '"').join(", ")
