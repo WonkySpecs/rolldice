@@ -15,6 +15,17 @@ when isMainModule:
 
     case parsed.kind:
       of prkParseError: echo parsed.message
+      of prkRoll:
+        let roll = roller.normalize(parsed.roll)
+        if roll.parts.len == 0:
+          echo "Unknown identifier"
+        else:
+          var info = ""
+          if roller.verbose:
+            let (a, b) = roller.rollResultRange(roll)
+            info = &" ({a}-{b})"
+          echo &"{roller.exec(roll)}{info}"
+      of prkAssignment: roller.tryAssign(parsed.identifier, parsed.value)
       of prkMeta:
         case parsed.command:
           of Quit: quit = true
@@ -51,18 +62,6 @@ when isMainModule:
             else:
               for s in saves:
                 echo s
-      of prkRoll:
-        let roll = roller.normalize(parsed.roll)
-        if roll.parts.len == 0:
-          echo "Unknown identifier"
-        else:
-          var info = ""
-          if roller.verbose:
-            let (a, b) = roller.rollResultRange(roll)
-            info = &" ({a}-{b})"
-          echo &"{roller.exec(roll)}{info}"
-      of prkAssignment: roller.tryAssign(parsed.identifier, parsed.value)
-
     previous = parsed
 
   echo "Bye high roller"
