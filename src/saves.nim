@@ -1,42 +1,40 @@
-import std / [parsecsv, tables, os, sequtils]
-import types, parser
-
-const cfgDir = expandTilde("~" / ".rolldice")
+import std / [parsecsv, tables, os, sequtils, options]
+import types, parser, constants
 
 proc save*(name: string, rolls: Table[string, Roll]) =
-  if not dirExists(cfgDir):
-    createDir(cfgDir)
+  if not dirExists(dataDir):
+    createDir(dataDir)
 
   var content = "id,roll\n"
 
   for k, v in rolls:
     content &= k & "," & $v & "\n"
 
-  writeFile(cfgDir / name, content)
+  writeFile(dataDir / name, content)
 
-proc load*(name: string): Table[string, Roll] =
-  let f = cfgDir / name
+proc load*(name: string): Option[Table[string, Roll]] =
+  let f = dataDir / name
   if not fileExists(f):
-    echo "No save called " & name & " exists"
-    return
+    return none(Table[string, Roll])
 
+  result = some(initTable[string, Roll]())
   var csv: CsvParser
 
-  csv.open(cfgDir / name)
+  csv.open(dataDir / name)
   csv.readHeaderRow()
   while csv.readRow():
     let parsed = parseRoll(csv.rowEntry("roll"))
     case parsed.kind:
       of prkRoll:
-        result[csv.rowEntry("id")] = parsed.roll
+        result.get()[csv.rowEntry("id")] = parsed.roll
       else:
         echo "oh no"
 
   csv.close()
 
 proc listSaves*(): seq[string] =
-  if not dirExists(cfgDir):
+  if not dirExists(dataDir):
     return
 
-  result = toSeq(walkFiles(cfgDir / "*"))
+  result = toSeq(walkFiles(dataDir / "*"))
     .map(extractFilename)

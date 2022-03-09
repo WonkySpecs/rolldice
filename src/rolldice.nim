@@ -62,6 +62,12 @@ when isMainModule:
             else:
               for s in saves:
                 echo s
+          of SetVariable:
+            if parsed.args.len < 2:
+              echo "'set' requires two arguments, the variable to set and its value"
+            else:
+              roller.set(parsed.args[0], parsed.args[1])
+
     previous = parsed
 
   echo "Bye high roller"

@@ -3,7 +3,7 @@ import types
 
 type
   MetaCommand* = enum
-    Quit, Help, Print, ToggleVerbose, ClearMemory, Save, Load, List
+    Quit, Help, Print, ToggleVerbose, ClearMemory, Save, Load, List, SetVariable
 
   ParseResultKind* = enum
     prkParseError, prkAssignment, prkRoll, prkMeta
@@ -30,6 +30,7 @@ const commands = {
   Save: @["save"],
   Load: @["load"],
   List: @["list"],
+  SetVariable: @["set"],
 }.toTable
 
 const commandDescriptions = [
@@ -40,7 +41,8 @@ const commandDescriptions = [
   ClearMemory: "Clear the current list of saved rolls",
   Save: "Save the list of saved rolls as a profile with the given name",
   Load: "Load a previously saved profile using its name",
-  List: "List saved profiles"
+  List: "List saved profiles",
+  SetVariable: "Set a variable value"
 ]
 
 proc printCommandHelp*() =

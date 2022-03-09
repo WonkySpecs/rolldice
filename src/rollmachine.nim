@@ -1,5 +1,5 @@
 import std / [tables, sugar, sequtils, strformat, deques, options, strutils, random]
-import types, saves
+import types, saves, config
 
 randomize()
 
@@ -77,9 +77,6 @@ proc exec(roller: RollMachine, part: RollPart): int =
     of Identifier:
       roller.exec(roller.getRoll(part.identifier))
 
-func initRollMachine*(): RollMachine =
-  RollMachine(verbose: true, assigned: initTable[string, Roll]())
-
 func isAssigned(roller: RollMachine, identifier: string): bool =
   roller.assigned.contains(identifier)
 proc toggleVerbose*(roller: var RollMachine) = roller.verbose = not roller.verbose
@@ -139,5 +136,22 @@ proc save*(roller: RollMachine, name: string) = save(name, roller.assigned)
 
 proc load*(roller: var RollMachine, name: string) =
   let loaded = load(name)
-  if loaded.len > 0:
-    roller.assigned = loaded
+  if loaded.isSome:
+    roller.assigned = loaded.get
+  else:
+    echo &"Profile '{name}' does not exist"
+
+proc set*(roller: var RollMachine, variable, value: string) =
+  if not configVariableSetters.hasKey(variable):
+    echo &"'{variable}' cannot be set"
+    echo "Use 'help set' to see all settable things (not really, but I'll add this at some point"
+  else:
+    configVariableSetters[variable](value)
+
+proc initRollMachine*(): RollMachine =
+  var machine = RollMachine(verbose: true, assigned: initTable[string, Roll]())
+  let cfg = loadedConfig
+  if cfg.defaultProfile.isSome:
+    echo &"Loading initial profile {cfg.defaultProfile.get}"
+    machine.load(cfg.defaultProfile.get)
+  machine
