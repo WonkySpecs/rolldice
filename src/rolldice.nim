@@ -24,7 +24,7 @@ when isMainModule:
           if roller.verbose:
             let (a, b) = roller.rollResultRange(roll)
             info = &" ({a}-{b})"
-          echo &"{roller.exec(roll)}{info}"
+          echo &"{roller.exec(roll, roller.verbose)}{info}"
       of prkAssignment: roller.tryAssign(parsed.identifier, parsed.value)
       of prkMeta:
         case parsed.command:

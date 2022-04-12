@@ -65,17 +65,25 @@ proc rollResultRange*(roller: RollMachine, roll: Roll): (int, int) =
 
   (rollMin, rollMax)
 
-proc exec(roller: RollMachine, part: RollPart): int
-proc exec*(roller: RollMachine, roll: Roll): int =
-  roll.parts.map(p => roller.exec(p)).foldl(a + b)
+proc exec(roller: RollMachine, part: RollPart, verbose: bool): seq[int]
+proc exec*(roller: RollMachine, roll: Roll, verbose: bool): int =
+  var results = newSeq[int]()
+  for partResult in roll.parts.map(p => roller.exec(p, verbose)):
+    results.add partResult
+  if verbose:
+    var partResultStrings = results.map(r => $r)
+      .join(" + ")
+    echo fmt"{partResultStrings} = "
+  results.foldl(a + b)
 
-proc exec(roller: RollMachine, part: RollPart): int =
+proc exec(roller: RollMachine, part: RollPart, verbose: bool): seq[int] =
   case part.kind:
-    of Modifier: part.value
+    of Modifier:
+      result.add part.value
     of DiceRoll:
-      toSeq(1..part.num).map(i => rand(part.sides - 1) + 1).foldl(a + b)
+      result = toSeq(1..part.num).map(i => rand(part.sides - 1) + 1)
     of Identifier:
-      roller.exec(roller.getRoll(part.identifier))
+      raise newException(Defect, "exec called on a non-flattened roll")
 
 func isAssigned(roller: RollMachine, identifier: string): bool =
   roller.assigned.contains(identifier)
