@@ -16,7 +16,7 @@ when isMainModule:
     case parsed.kind:
       of prkParseError: echo parsed.message
       of prkRoll:
-        let roll = roller.normalize(parsed.roll)
+        let roll = roller.flatten(parsed.roll)
         if roll.parts.len == 0:
           echo "Unknown identifier"
         else:

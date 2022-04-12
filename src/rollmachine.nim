@@ -14,45 +14,45 @@ func getRoll*(roller: RollMachine, identifier: string): Roll =
   else:
     Roll(parts: @[])
 
-proc normalize*(roller: RollMachine, roll: Roll): Roll =
-  ## Turn a roll into it's simplest form, combining multiple of the same parts and
-  ## resolving symbols
+proc flatten*(roller: RollMachine, roll: Roll): Roll =
+  ## Simplify a roll by resolving all identifier parts and combining modifiers.
+  ##
+  ## Example
+  ## ---
+  ## a: d20 + 1d4 + 1
+  ## b: 3 + d10
+  ## flatten(2d10 + a + b) -> 2d10 + d20 + 1d4 + d10 + 3
 
-  proc normalize(roll: Roll): Table[int, seq[int]] =
-    # number of sides:
-    var counts = initTable[int, seq[int]]()
+  proc depthFirstFlatten(roll: Roll): Roll =
+    result = Roll()
     for part in roll.parts:
       case part.kind:
-        of Modifier:
-          var vals = counts.getOrDefault(0, newSeq[int]())
-          vals.add part.value
-          counts[0] = vals
-        of DiceRoll:
-          var vals = counts.getOrDefault(part.sides, newSeq[int]())
-          vals.add part.num
-          counts[part.sides] = vals
         of Identifier:
-          let nested = normalize(roller.getRoll(part.identifier))
-          for k, v in nested:
-            var vals = counts.getOrDefault(k, newSeq[int]())
-            vals = vals & v
-            counts[k] = vals
-    counts
-
-  let asTable = normalize(roll)
-  var parts = newSeq[RollPart]()
-  for k, v in asTable:
-    parts.add(if k == 0:
-        RollPart(kind: Modifier, value: v.foldl(a + b))
+          var asdf = roller.getRoll(part.identifier)
+          var flattened = depthFirstFlatten(asdf)
+          result.parts = result.parts.concat(flattened.parts)
+        else:
+          result.parts.add(part)
+  var flattened = depthFirstFlatten(roll)
+  result = Roll()
+  var totalModifier = 0
+  for part in flattened.parts:
+    case part.kind:
+      of Modifier:
+        totalModifier += part.value
       else:
-        RollPart(kind: DiceRoll, sides: k, num: v.foldl(a + b)))
-  Roll(parts: parts)
+        result.parts.add(part)
+
+
+  if totalModifier != 0:
+    result.parts.add(RollPart(kind: Modifier, value: totalModifier))
+
 
 proc rollResultRange*(roller: RollMachine, roll: Roll): (int, int) =
   var
     rollMin = 0
     rollMax = 0
-  for part in roller.normalize(roll).parts:
+  for part in roller.flatten(roll).parts:
     case part.kind:
       of Modifier:
         rollMin += part.value
