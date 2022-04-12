@@ -1,4 +1,4 @@
-import std / [strutils, rdstdin, strformat]
+import std / [strutils, rdstdin, strformat, terminal]
 import types, parser, rollmachine, saves
 
 var roller = initRollMachine()
@@ -70,4 +70,5 @@ when isMainModule:
 
     previous = parsed
 
+  stdout.resetAttributes
   echo "Bye high roller"
