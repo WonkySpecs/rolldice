@@ -21,7 +21,7 @@ proc flatten*(roller: RollMachine, roll: Roll): Roll =
   ## ---
   ## a: d20 + 1d4 + 1
   ## b: 3 + d10
-  ## flatten(2d10 + a + b) -> 2d10 + d20 + 1d4 + d10 + 3
+  ## flatten(2d10 + a + b) -> 2d10 + d20 + 1d4 + d10 + 4
 
   proc depthFirstFlatten(roll: Roll): Roll =
     result = Roll()
