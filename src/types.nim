@@ -52,11 +52,11 @@ func `$`*(roll: Roll): string =
     .map(p => $p)
     .join(" + ")
 
-method tryExec*(mode: var Mode, input: string): bool {.base} =
+method tryExec*(mode: var Mode, input: string): bool {.base, locks: "unknown"} =
   raise newException(Exception, "Method without override")
 
 method name*(mode: Mode): string {.base} =
   raise newException(Exception, "Method without override")
 
-method serialize*(mode: Mode): string {.base} =
+method serialize*(mode: Mode): string {.base, locks: "unknown"} =
   raise newException(Exception, "Method without override")

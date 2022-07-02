@@ -1,4 +1,3 @@
-import std / tables
 import modes / [dndchar, core]
 import types
 

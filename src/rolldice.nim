@@ -1,5 +1,5 @@
-import std / [strutils, rdstdin, strformat, terminal, sequtils, tables]
-import types, parser, saves, modes, basics, config
+import std / [strutils, rdstdin, strformat, terminal, tables]
+import types, parser, saves, modes, config
 
 var activeModes = newSeq[Mode]()
 activeModes.add initCoreMode()
