@@ -26,7 +26,7 @@ proc save() =
 
 proc setDefaultProfile(value: string) =
   let loaded = load(value)
-  if loaded[0].isNone:
+  if loaded.isNone:
     echo &"No profile called {value} currently exists"
     if not confirm("Are you sure you want to make this the default profile"):
       return

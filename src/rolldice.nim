@@ -1,9 +1,14 @@
-import std / [strutils, rdstdin, strformat, terminal, tables]
-import types, parser, saves, modes, config
+import std / [strutils, rdstdin, strformat, terminal, tables, options]
+import types, parser, saves, config, modes
 
-var activeModes = newSeq[Mode]()
-activeModes.add initCoreMode()
-activeModes.add initDndCharMode()
+var initialModes: seq[Mode]
+initialModes.add initCoreMode()
+var profile = Profile(name: "", modes: initialModes)
+
+if loadedConfig.defaultProfile.isSome:
+  let default = load(loadedConfig.defaultProfile.get())
+  if default.isSome:
+    profile = default.get()
 
 when isMainModule:
   echo "Get rolling, or enter 'help' for help"
@@ -17,7 +22,7 @@ when isMainModule:
       previous = next
 
     var handled = false
-    for mode in activeModes:
+    for mode in profile.modes:
       var v = mode
       if v.tryExec(line):
         handled = true
@@ -39,15 +44,21 @@ when isMainModule:
             echo "-----"
             printCommandHelp()
           of Save:
-            if parsed.args.len == 0:
+            if parsed.args.len == 0 and profile.name.isEmptyOrWhiteSpace:
               echo "Must specify a name, ie. 'save savename'"
-            echo "saving"
+            elif parsed.args.len == 0:
+              save(profile.name, profile.modes)
+            else:
+              save(parsed.args[0], profile.modes)
           of Load:
             if parsed.args.len == 0:
               echo "Must specify profile to load, ie. 'load savename'"
-            # else:
-            #   # TODO: move mode into machine
-            #   activeModes.add roller.load(parsed.args[0])
+            else:
+              let loadedProfile = load(parsed.args[0])
+              if loadedProfile.isNone:
+                echo &"Profile '{parsed.args[0]}' does not exist"
+              else:
+                profile = loadedProfile.get()
           of List:
             let saves = listSaves()
             if saves.len == 0:

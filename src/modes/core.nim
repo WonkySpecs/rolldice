@@ -107,16 +107,14 @@ func invalidAssignmentMessage(
     return some("Roll cannot include a reference to itself")
   return none(string)
 
-proc tryAssign*(mode: var CoreMode, identifier: string, roll: Roll): bool =
+proc tryAssign*(mode: var CoreMode, identifier: string, roll: Roll) =
   ## Tries to save the roll as the given identifier
   ## If it's invalid, prints an error message instead
   let err = mode.invalidAssignmentMessage(identifier, roll)
   if err.isSome:
     echo err.get()
-    true
   else:
     mode.assigned[identifier] = roll
-    false
 
 func parseCommand(input: string): Command =
   if "=" in input:
@@ -159,7 +157,8 @@ method tryExec*(mode: var CoreMode, input: string): bool =
         echo &"{exec(roll)} ({a}-{b})"
         true
     of ckAssignment:
-      mode.tryAssign(parsed.identifier, parsed.value):
+      mode.tryAssign(parsed.identifier, parsed.value)
+      true
     of ckClear:
       mode.assigned.clear()
       true

@@ -19,9 +19,10 @@ type
 
   Mode* = ref object of RootObj
 
-  Profile* = ref object
+  Profile* = object
     name*: string
     modes*: seq[Mode]
+    activeModes*: seq[string]
 
 func partCmp(p1, p2: RollPart): int =
   case p1.kind:
