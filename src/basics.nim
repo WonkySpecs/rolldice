@@ -3,26 +3,25 @@ import types
 
 randomize()
 
-proc exec(part: RollPart, verbose: bool): seq[(int, int)]
-proc exec*(roll: Roll, verbose: bool): int =
+proc exec(part: RollPart): seq[(int, int)]
+proc exec*(roll: Roll): int =
   var results = newSeq[(int, int)]()
-  for partResult in roll.parts.map(p => exec(p, verbose)):
+  for partResult in roll.parts.map(p => exec(p)):
     results.add partResult
-  if verbose:
-    for i, r in results:
-      var (a, b) = r
-      var col = fgDefault
-      if a == b:
-        col = fgGreen
-      elif a == 1 and b > 0:
-        col = fgRed
-      stdout.styledWrite(col, $a)
-      if i < results.high:
-        stdout.write(" + ")
-    stdout.write(" = ")
+  for i, r in results:
+    var (a, b) = r
+    var col = fgDefault
+    if a == b:
+      col = fgGreen
+    elif a == 1 and b > 0:
+      col = fgRed
+    stdout.styledWrite(col, $a)
+    if i < results.high:
+      stdout.write(" + ")
+  stdout.write(" = ")
   results.map(pr => pr[0]).foldl(a + b)
 
-proc exec(part: RollPart, verbose: bool): seq[(int, int)] =
+proc exec(part: RollPart): seq[(int, int)] =
   ## Returns seq of (result, max)
   case part.kind:
     of Modifier:

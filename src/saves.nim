@@ -1,12 +1,7 @@
 import std / [parsecsv, tables, os, sequtils, options, sugar]
 import types, parser, constants, modes
 
-type
-  Profile = ref object
-    rolls: Table[string, Roll]
-    modes: seq[Mode]
-
-proc save*(name: string, rolls: Table[string, Roll], mode: Mode) =
+proc save*(name: string, rolls: Table[string, Roll], modes: openarray[Mode]) =
   let profileDir = dataDir / name
   if not dirExists(profileDir):
     createDir(profileDir)
@@ -17,7 +12,8 @@ proc save*(name: string, rolls: Table[string, Roll], mode: Mode) =
     content &= k & "," & $v & "\n"
 
   writeFile(profiledir / "core", content)
-  writeFile(profiledir / mode.name, mode.serialize())
+  for mode in modes:
+    writeFile(profiledir / mode.name, mode.serialize())
 
 proc load*(name: string): (Option[Table[string, Roll]], Mode) =
   let profileDir = dataDir / name
@@ -30,19 +26,15 @@ proc load*(name: string): (Option[Table[string, Roll]], Mode) =
   csv.open(profileDir / "core")
   csv.readHeaderRow()
   while csv.readRow():
-    let parsed = parseRoll(csv.rowEntry("roll"))
-    case parsed.kind:
-      of prkRoll:
-        result[0].get()[csv.rowEntry("id")] = parsed.roll
-      else:
-        echo "oh no"
+    let parsed = parseRoll(csv.rowEntry("roll")).get()
+    result[0].get()[csv.rowEntry("id")] = parsed
   csv.close()
 
   let modeSaves = toSeq(walkFiles(profileDir / "*"))
     .map(extractFileName)
     .filter(f => f != "core")
   let f = readFile(profileDir / modeSaves[0])
-  result[1] = deserializers[modeSaves[0]](f)
+  result[1] = deserialize(modeSaves[0], f)
 
 proc listSaves*(): seq[string] =
   if not dirExists(dataDir):

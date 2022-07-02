@@ -93,7 +93,7 @@ const rollKinds = @[
   Str, Dex, Con, Int, Wis, Cha, Initiative
 ]
 
-method tryExec*(mode: var DndCharMode, input: string, verbose: bool): bool =
+method tryExec*(mode: var DndCharMode, input: string): bool =
   let p = parse(input)
   if p.isNone: return false
 
@@ -113,11 +113,8 @@ method tryExec*(mode: var DndCharMode, input: string, verbose: bool): bool =
       RollPart(kind: DiceRoll, num: 1, sides: 20),
       RollPart(kind: Modifier, value: modifier)])
 
-    var info = ""
-    if verbose:
-      let (a, b) = rollResultRange(roll)
-      info = &" ({a}-{b})"
-    echo &"{exec(roll, verbose)}{info}"
+    let (a, b) = rollResultRange(roll)
+    echo &"{exec(roll)} ({a}-{b})"
   else:
     return case kind:
       of Set: mode.setValue(p.get())

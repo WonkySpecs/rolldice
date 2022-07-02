@@ -1,32 +1,23 @@
-import std / [strutils, sequtils, sugar, re, tables, strformat]
+import std / [strutils, sequtils, sugar, re, tables, strformat, options]
 import types
 
 type
   MetaCommand* = enum
-    Quit, Help, Print, ToggleVerbose, ClearMemory, Save, Load, List, SetVariable
+    Quit, Help, Save, Load, List, SetVariable
 
   ParseResultKind* = enum
-    prkParseError, prkAssignment, prkRoll, prkMeta
+    prkMeta, prkError
 
   ParsedLine* = object
     case kind*: ParseResultKind
-    of prkParseError:
-      message*: string
-    of prkRoll:
-      roll*: Roll
-    of prkAssignment:
-      identifier*: string
-      value*: Roll
     of prkMeta:
       command*: MetaCommand
       args*: seq[string]
+    else: discard
 
 const commands = {
   Quit: @["quit", "q", "exit", "bye"],
   Help: @["help", "h", "?"],
-  Print: @["print"],
-  ToggleVerbose: @["verbose", "v"],
-  ClearMemory: @["clear"],
   Save: @["save"],
   Load: @["load"],
   List: @["list"],
@@ -36,9 +27,6 @@ const commands = {
 const commandDescriptions = [
   Quit: "Quit rolldice",
   Help: "Show this help text",
-  Print: "Show the current list of saved rolls",
-  ToggleVerbose: "Toggle verbose output",
-  ClearMemory: "Clear the current list of saved rolls",
   Save: "Save the list of saved rolls as a profile with the given name",
   Load: "Load a previously saved profile using its name",
   List: "List saved profiles",
@@ -55,7 +43,7 @@ proc printCommandHelp*() =
     let commandStringList = v.map(c => '"' & c & '"').join(", ")
     echo &"[{commandStringList}]: {commandDescriptions[k]}"
 
-func parseRoll*(input: string): ParsedLine =
+func parseRoll*(input: string): Option[Roll] =
   let parts = split(input, "+").mapIt($(it.strip()))
   var outParts = newSeq[RollPart]()
 
@@ -70,25 +58,7 @@ func parseRoll*(input: string): ParsedLine =
         sides: matches[1].parseInt())
     else: outParts.add RollPart(kind: Identifier, identifier: part)
 
-  ParsedLine(
-    kind: prkRoll,
-    roll: Roll(parts: outParts))
-
-func parseCommand(input: string): ParsedLine =
-  if "=" in input:
-    let splitCmd = split(input, "=", 1)
-    let parsed = parseRoll(splitCmd[1].strip())
-
-    case parsed.kind:
-      of prkParseError: parsed
-      of prkRoll: ParsedLine(
-        kind: prkAssignment,
-        identifier: splitCmd[0].strip(),
-        value: parsed.roll)
-      else:
-        raise newException(Defect, "parseRoll returned something other than error/a roll when trying to parsed an assignment")
-  else:
-    parseRoll(input.strip())
+  some(Roll(parts: outParts))
 
 func parse*(input: string): ParsedLine =
   let lower = toLower(input).strip()
@@ -101,5 +71,4 @@ func parse*(input: string): ParsedLine =
   for k, v in commands:
     if any(v, c => c == cmd):
       return ParsedLine(kind: prkMeta, command: k, args: rest)
-  # Doesn't match any meta commands, parse as roll or assignment
-  parseCommand(lower)
+  ParsedLine(kind: prkError)

@@ -19,6 +19,10 @@ type
 
   Mode* = ref object of RootObj
 
+  Profile* = ref object
+    name*: string
+    modes*: seq[Mode]
+
 func partCmp(p1, p2: RollPart): int =
   case p1.kind:
     of Modifier:
@@ -48,7 +52,7 @@ func `$`*(roll: Roll): string =
     .map(p => $p)
     .join(" + ")
 
-method tryExec*(mode: var Mode, input: string, verbose: bool): bool {.base} =
+method tryExec*(mode: var Mode, input: string): bool {.base} =
   raise newException(Exception, "Method without override")
 
 method name*(mode: Mode): string {.base} =
