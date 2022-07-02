@@ -109,9 +109,9 @@ method tryExec*(mode: var DndCharMode, input: string): bool =
       of Initiative: mode.dex_mod
       else: 0
 
-    var roll = Roll(parts: @[
-      RollPart(kind: DiceRoll, num: 1, sides: 20),
-      RollPart(kind: Modifier, value: modifier)])
+    var roll = Roll(parts: @[RollPart(kind: DiceRoll, num: 1, sides: 20)])
+    if modifier != 0:
+      roll.parts.add RollPart(kind: Modifier, value: modifier)
 
     let (a, b) = rollResultRange(roll)
     echo &"{exec(roll)} ({a}-{b})"
