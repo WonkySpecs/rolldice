@@ -50,8 +50,25 @@ func parse(input: string): Option[Command] =
 
   return none(Command)
 
-proc setValue(mode: var DndCharMode, command: Command) =
+proc setValue(mode: var DndCharMode, command: Command): bool =
   assert command.kind == Set
+  if command.args.len == 0:
+    echo "Use 'set <attr> <value>' to set a value."
+    echo "Possible attrs are 'str', 'dex', 'con', 'int', 'wis', 'cha', and 'level'"
+    return true
+
+  elif command.args.len == 1:
+    case command.args[0]:
+      of "str": echo mode.str_mod
+      of "dex": echo mode.dex_mod
+      of "con": echo mode.con_mod
+      of "int": echo mode.int_mod
+      of "wis": echo mode.wis_mod
+      of "cha": echo mode.cha_mod
+      of "level": echo mode.level
+      else: return false
+    return true
+
   try:
     let
       attr = command.args[0]
@@ -66,8 +83,11 @@ proc setValue(mode: var DndCharMode, command: Command) =
       of "level": mode.level = value
       else:
         echo &"Cannot set unknown attribute '{attr}'"
+        return false
   except ValueError:
     echo "Argument to set must be an integer"
+    return false
+  true
 
 const rollKinds = @[
   Str, Dex, Con, Int, Wis, Cha, Initiative
@@ -99,9 +119,9 @@ method tryExec*(mode: var DndCharMode, input: string, verbose: bool): bool =
       info = &" ({a}-{b})"
     echo &"{exec(roll, verbose)}{info}"
   else:
-    case kind:
+    return case kind:
       of Set: mode.setValue(p.get())
-      else: discard
+      else: false
   true
 
 method name*(mode: DndCharMode): string = modeName

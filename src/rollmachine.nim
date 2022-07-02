@@ -6,7 +6,7 @@ type
     verbose*: bool
     assigned: Table[string, Roll]
 
-func getRoll*(roller: RollMachine, identifier: string): Roll =
+func getRoll(roller: RollMachine, identifier: string): Roll =
   if roller.assigned.contains(identifier):
     roller.assigned[identifier]
   else:
@@ -40,7 +40,6 @@ proc flatten*(roller: RollMachine, roll: Roll): Roll =
         totalModifier += part.value
       else:
         result.parts.add(part)
-
 
   if totalModifier != 0:
     result.parts.add(RollPart(kind: Modifier, value: totalModifier))

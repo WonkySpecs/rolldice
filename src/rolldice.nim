@@ -1,8 +1,9 @@
-import std / [strutils, rdstdin, strformat, terminal]
+import std / [strutils, rdstdin, strformat, terminal, sequtils]
 import types, parser, rollmachine, saves, modes, basics
 
 var roller = initRollMachine()
-var mode: Mode = initDndCharMode()
+var activeModes = newSeq[Mode]()
+activeModes.add initDndCharMode()
 
 when isMainModule:
   echo "Get rolling, or enter 'help' for help"
@@ -15,7 +16,13 @@ when isMainModule:
     if not next.isEmptyOrWhiteSpace:
       previous = next
 
-    if mode.tryExec(line, roller.verbose): continue
+    var handled = false
+    for mode in activeModes:
+      var v = mode
+      if v.tryExec(line, roller.verbose):
+        handled = true
+        break
+    if handled: continue
 
     let parsed = parse(line)
     case parsed.kind:
@@ -54,13 +61,13 @@ when isMainModule:
             if parsed.args.len == 0:
               echo "Must specify a name, ie. 'save savename'"
             else:
-              roller.save(parsed.args[0], mode)
+              roller.save(parsed.args[0], activeModes[activeModes.high])
           of Load:
             if parsed.args.len == 0:
               echo "Must specify profile to load, ie. 'load savename'"
             else:
               # TODO: move mode into machine
-              mode = roller.load(parsed.args[0])
+              activeModes.add roller.load(parsed.args[0])
           of List:
             let saves = listSaves()
             if saves.len == 0:
