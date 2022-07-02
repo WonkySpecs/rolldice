@@ -1,18 +1,23 @@
 import std / [strutils, rdstdin, strformat, terminal]
-import types, parser, rollmachine, saves
+import types, parser, rollmachine, saves, modes, basics
 
 var roller = initRollMachine()
+var mode: Mode = initDndCharMode()
 
 when isMainModule:
   echo "Get rolling, or enter 'help' for help"
   var quit = false
-  var previous = ParsedLine(kind: prkRoll,
-    roll: Roll(parts: @[RollPart(kind: DiceRoll, num: 1, sides: 20)]))
+  var previous = "d20"
 
   while not quit:
-    let line = readLineFromStdin("> ")
-    let parsed = if line.isEmptyOrWhitespace(): previous else: parse(line)
+    let next = readLineFromStdin("> ")
+    let line = if next.isEmptyOrWhiteSpace: previous else: next
+    if not next.isEmptyOrWhiteSpace:
+      previous = next
 
+    if mode.tryExec(line, roller.verbose): continue
+
+    let parsed = parse(line)
     case parsed.kind:
       of prkParseError: echo parsed.message
       of prkRoll:
@@ -24,7 +29,7 @@ when isMainModule:
           if roller.verbose:
             let (a, b) = roller.rollResultRange(roll)
             info = &" ({a}-{b})"
-          echo &"{roller.exec(roll, roller.verbose)}{info}"
+          echo &"{exec(roll, roller.verbose)}{info}"
       of prkAssignment: roller.tryAssign(parsed.identifier, parsed.value)
       of prkMeta:
         case parsed.command:
@@ -49,12 +54,13 @@ when isMainModule:
             if parsed.args.len == 0:
               echo "Must specify a name, ie. 'save savename'"
             else:
-              roller.save(parsed.args[0])
+              roller.save(parsed.args[0], mode)
           of Load:
             if parsed.args.len == 0:
               echo "Must specify profile to load, ie. 'load savename'"
             else:
-              roller.load(parsed.args[0])
+              # TODO: move mode into machine
+              mode = roller.load(parsed.args[0])
           of List:
             let saves = listSaves()
             if saves.len == 0:
@@ -67,8 +73,6 @@ when isMainModule:
               echo "'set' requires two arguments, the variable to set and its value"
             else:
               roller.set(parsed.args[0], parsed.args[1])
-
-    previous = parsed
 
   stdout.resetAttributes
   echo "Bye high roller"

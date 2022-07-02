@@ -17,6 +17,8 @@ type
   Roll* = object
     parts*: seq[RollPart]
 
+  Mode* = ref object of RootObj
+
 func partCmp(p1, p2: RollPart): int =
   case p1.kind:
     of Modifier:
@@ -45,3 +47,12 @@ func `$`*(roll: Roll): string =
   sorted(roll.parts, partCmp)
     .map(p => $p)
     .join(" + ")
+
+method tryExec*(mode: var Mode, input: string, verbose: bool): bool {.base} =
+  raise newException(Exception, "Method without override")
+
+method name*(mode: Mode): string {.base} =
+  raise newException(Exception, "Method without override")
+
+method serialize*(mode: Mode): string {.base} =
+  raise newException(Exception, "Method without override")

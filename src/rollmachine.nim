@@ -1,7 +1,5 @@
-import std / [tables, sugar, sequtils, strutils, strformat, deques, options, random, terminal]
-import types, saves, config
-
-randomize()
+import std / [tables, sugar, sequtils, strutils, strformat, deques, options, terminal]
+import types, saves, config, basics
 
 type
   RollMachine* = object
@@ -47,52 +45,8 @@ proc flatten*(roller: RollMachine, roll: Roll): Roll =
   if totalModifier != 0:
     result.parts.add(RollPart(kind: Modifier, value: totalModifier))
 
-
 proc rollResultRange*(roller: RollMachine, roll: Roll): (int, int) =
-  var
-    rollMin = 0
-    rollMax = 0
-  for part in roller.flatten(roll).parts:
-    case part.kind:
-      of Modifier:
-        rollMin += part.value
-        rollMax += part.value
-      of DiceRoll:
-        rollMin += part.num
-        rollMax += part.num * part.sides
-      else:
-        debugEcho "Got an identifier in a normalized roll during rollResultRange"
-
-  (rollMin, rollMax)
-
-proc exec(roller: RollMachine, part: RollPart, verbose: bool): seq[(int, int)]
-proc exec*(roller: RollMachine, roll: Roll, verbose: bool): int =
-  var results = newSeq[(int, int)]()
-  for partResult in roll.parts.map(p => roller.exec(p, verbose)):
-    results.add partResult
-  if verbose:
-    for i, r in results:
-      var (a, b) = r
-      var col = fgDefault
-      if a == b:
-        col = fgGreen
-      elif a == 1 and b > 0:
-        col = fgRed
-      stdout.styledWrite(col, $a)
-      if i < results.high:
-        stdout.write(" + ")
-    stdout.write(" = ")
-  results.map(pr => pr[0]).foldl(a + b)
-
-proc exec(roller: RollMachine, part: RollPart, verbose: bool): seq[(int, int)] =
-  ## Returns seq of (result, max)
-  case part.kind:
-    of Modifier:
-      result.add (part.value, 0)
-    of DiceRoll:
-      result = toSeq(1..part.num).map(i => (rand(part.sides - 1) + 1, part.sides))
-    of Identifier:
-      raise newException(Defect, "exec called on a non-flattened roll")
+  rollResultRange(roller.flatten(roll))
 
 func isAssigned(roller: RollMachine, identifier: string): bool =
   roller.assigned.contains(identifier)
@@ -149,14 +103,16 @@ proc print*(roller: RollMachine) =
 
 proc clearMemory*(roller: var RollMachine) = roller.assigned.clear()
 
-proc save*(roller: RollMachine, name: string) = save(name, roller.assigned)
+proc save*(roller: RollMachine, name: string, mode: Mode) =
+  save(name, roller.assigned, mode)
 
-proc load*(roller: var RollMachine, name: string) =
-  let loaded = load(name)
+proc load*(roller: var RollMachine, name: string): Mode =
+  let (loaded, mode) = load(name)
   if loaded.isSome:
     roller.assigned = loaded.get
   else:
     echo &"Profile '{name}' does not exist"
+  mode
 
 proc set*(roller: var RollMachine, variable, value: string) =
   if not configVariableSetters.hasKey(variable):
@@ -170,5 +126,5 @@ proc initRollMachine*(): RollMachine =
   let cfg = loadedConfig
   if cfg.defaultProfile.isSome:
     echo &"Loading initial profile {cfg.defaultProfile.get}"
-    machine.load(cfg.defaultProfile.get)
+    discard machine.load(cfg.defaultProfile.get)
   machine

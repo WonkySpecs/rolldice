@@ -1,40 +1,52 @@
-import std / [parsecsv, tables, os, sequtils, options]
-import types, parser, constants
+import std / [parsecsv, tables, os, sequtils, options, sugar]
+import types, parser, constants, modes
 
-proc save*(name: string, rolls: Table[string, Roll]) =
-  if not dirExists(dataDir):
-    createDir(dataDir)
+type
+  Profile = ref object
+    rolls: Table[string, Roll]
+    modes: seq[Mode]
+
+proc save*(name: string, rolls: Table[string, Roll], mode: Mode) =
+  let profileDir = dataDir / name
+  if not dirExists(profileDir):
+    createDir(profileDir)
 
   var content = "id,roll\n"
 
   for k, v in rolls:
     content &= k & "," & $v & "\n"
 
-  writeFile(dataDir / name, content)
+  writeFile(profiledir / "core", content)
+  writeFile(profiledir / mode.name, mode.serialize())
 
-proc load*(name: string): Option[Table[string, Roll]] =
-  let f = dataDir / name
-  if not fileExists(f):
-    return none(Table[string, Roll])
+proc load*(name: string): (Option[Table[string, Roll]], Mode) =
+  let profileDir = dataDir / name
+  if not dirExists(profileDir):
+    return (none(Table[string, Roll]), initDndCharMode())
 
-  result = some(initTable[string, Roll]())
+  result[0] = some(initTable[string, Roll]())
   var csv: CsvParser
 
-  csv.open(dataDir / name)
+  csv.open(profileDir / "core")
   csv.readHeaderRow()
   while csv.readRow():
     let parsed = parseRoll(csv.rowEntry("roll"))
     case parsed.kind:
       of prkRoll:
-        result.get()[csv.rowEntry("id")] = parsed.roll
+        result[0].get()[csv.rowEntry("id")] = parsed.roll
       else:
         echo "oh no"
-
   csv.close()
+
+  let modeSaves = toSeq(walkFiles(profileDir / "*"))
+    .map(extractFileName)
+    .filter(f => f != "core")
+  let f = readFile(profileDir / modeSaves[0])
+  result[1] = deserializers[modeSaves[0]](f)
 
 proc listSaves*(): seq[string] =
   if not dirExists(dataDir):
     return
 
-  result = toSeq(walkFiles(dataDir / "*"))
+  result = toSeq(walkDirs(dataDir / "*"))
     .map(extractFilename)

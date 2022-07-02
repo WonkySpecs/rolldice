@@ -1,3 +1,3 @@
 import std / os
 
-const dataDir* = expandTilde("~" / ".rolldice")
+const dataDir* = expandTilde("~" / ".rolldicetest")
