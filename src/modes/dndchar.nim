@@ -1,6 +1,7 @@
-import std / [tables, strutils, strformat, options, marshal]
+import std / [tables, strutils, strformat, options, marshal, tables]
 import .. / types
 import .. / basics
+import .. / utils
 
 const modeName* = "dndchar"
 
@@ -29,12 +30,25 @@ func initDndCharMode*(): DndCharMode =
     cha_mod: 0,
     level: 1)
 
-const commands = {
+const attrStrings = {
   Str: "str",
   Dex: "dex",
+  Con: "con",
+  Int: "int",
+  Wis: "wis",
+  Cha: "cha",
+}.toTable
+
+const commands = attrStrings.concat({
+  StrSave: "str_save",
+  DexSave: "dex_save",
+  ConSave: "con_save",
+  IntSave: "int_save",
+  WisSave: "wis_save",
+  ChaSave: "cha_save",
   Initiative: "i",
   Set: "set",
-}.toTable
+}.toTable)
 
 func parse(input: string): Option[Command] =
   let lower = toLower(input).strip()
@@ -90,7 +104,8 @@ proc setValue(mode: var DndCharMode, command: Command): bool =
   true
 
 const rollKinds = @[
-  Str, Dex, Con, Int, Wis, Cha, Initiative
+  Str, Dex, Con, Int, Wis, Cha, Initiative,
+  StrSave, DexSave, ConSave, IntSave, WisSave, ChaSave, Initiative,
 ]
 
 method tryExec*(mode: var DndCharMode, input: string): bool =
@@ -106,6 +121,12 @@ method tryExec*(mode: var DndCharMode, input: string): bool =
       of Int: mode.int_mod
       of Wis: mode.wis_mod
       of Cha: mode.cha_mod
+      of StrSave: mode.str_mod
+      of DexSave: mode.dex_mod
+      of ConSave: mode.con_mod
+      of IntSave: mode.int_mod
+      of WisSave: mode.wis_mod
+      of ChaSave: mode.cha_mod
       of Initiative: mode.dex_mod
       else: 0
 
