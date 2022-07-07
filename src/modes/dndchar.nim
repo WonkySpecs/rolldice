@@ -1,4 +1,4 @@
-import std / [tables, strutils, strformat, options, marshal, tables]
+import std / [strutils, strformat, options, marshal, tables]
 import .. / types
 import .. / basics
 import .. / utils
