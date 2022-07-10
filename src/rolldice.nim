@@ -31,7 +31,7 @@ when isMainModule:
 
     let parsed = parse(line)
     case parsed.kind:
-      of prkError: echo "parse error"
+      of prkError: echo "Unknown command (type 'help' for help)"
       of prkMeta:
         case parsed.command:
           of Quit: quit = true
