@@ -1,4 +1,4 @@
-import std / [strutils, strformat, options, marshal, tables]
+import std / [strutils, strformat, options, marshal, tables, math]
 import .. / types
 import .. / basics
 import .. / utils
@@ -7,7 +7,7 @@ const modeName* = "dndchar"
 
 type
   DndCharMode* = ref object of Mode
-    str_mod, dex_mod, con_mod, int_mod, wis_mod, cha_mod: int
+    str, dex, con, intelligence, wis, cha: int
     level: int
 
   CommandKind = enum
@@ -22,12 +22,12 @@ type
 
 func initDndCharMode*(): DndCharMode =
   DndCharMode(
-    str_mod: 0,
-    dex_mod: 0,
-    con_mod: 0,
-    int_mod: 0,
-    wis_mod: 0,
-    cha_mod: 0,
+    str: 0,
+    dex: 0,
+    con: 0,
+    intelligence: 0,
+    wis: 0,
+    cha: 0,
     level: 1)
 
 const attrStrings = {
@@ -73,12 +73,12 @@ proc setValue(mode: var DndCharMode, command: Command): bool =
 
   elif command.args.len == 1:
     case command.args[0]:
-      of "str": echo mode.str_mod
-      of "dex": echo mode.dex_mod
-      of "con": echo mode.con_mod
-      of "int": echo mode.int_mod
-      of "wis": echo mode.wis_mod
-      of "cha": echo mode.cha_mod
+      of "str": echo mode.str
+      of "dex": echo mode.dex
+      of "con": echo mode.con
+      of "int": echo mode.intelligence
+      of "wis": echo mode.wis
+      of "cha": echo mode.cha
       of "level": echo mode.level
       else: return false
     return true
@@ -88,12 +88,12 @@ proc setValue(mode: var DndCharMode, command: Command): bool =
       attr = command.args[0]
       value = parseInt(command.args[1])
     case attr:
-      of "str": mode.str_mod = value
-      of "dex": mode.dex_mod = value
-      of "con": mode.con_mod = value
-      of "int": mode.int_mod = value
-      of "wis": mode.wis_mod = value
-      of "cha": mode.cha_mod = value
+      of "str": mode.str = value
+      of "dex": mode.dex = value
+      of "con": mode.con = value
+      of "int": mode.intelligence = value
+      of "wis": mode.wis = value
+      of "cha": mode.cha = value
       of "level": mode.level = value
       else:
         echo &"Cannot set unknown attribute '{attr}'"
@@ -108,29 +108,32 @@ const rollKinds = @[
   StrSave, DexSave, ConSave, IntSave, WisSave, ChaSave, Initiative,
 ]
 
+proc modifier(attValue: int): int = floor((attValue - 10) / 2).toInt
+
 method tryExec*(mode: var DndCharMode, input: string): bool =
   let p = parse(input)
   if p.isNone: return false
 
   let kind = p.get().kind
   if rollKinds.contains(kind):
-    let modifier = case kind:
-      of Str: mode.str_mod
-      of Dex: mode.dex_mod
-      of Con: mode.con_mod
-      of Int: mode.int_mod
-      of Wis: mode.wis_mod
-      of Cha: mode.cha_mod
-      of StrSave: mode.str_mod
-      of DexSave: mode.dex_mod
-      of ConSave: mode.con_mod
-      of IntSave: mode.int_mod
-      of WisSave: mode.wis_mod
-      of ChaSave: mode.cha_mod
-      of Initiative: mode.dex_mod
+    let score = case kind:
+      of Str: mode.str
+      of Dex: mode.dex
+      of Con: mode.con
+      of Int: mode.intelligence
+      of Wis: mode.wis
+      of Cha: mode.cha
+      of StrSave: mode.str
+      of DexSave: mode.dex
+      of ConSave: mode.con
+      of IntSave: mode.intelligence
+      of WisSave: mode.wis
+      of ChaSave: mode.cha
+      of Initiative: mode.dex
       else: 0
 
     var roll = Roll(parts: @[RollPart(kind: DiceRoll, num: 1, sides: 20)])
+    let modifier = modifier(score)
     if modifier != 0:
       roll.parts.add RollPart(kind: Modifier, value: modifier)
 
@@ -150,3 +153,19 @@ method serialize*(mode: DndCharMode): string =
 proc deserialize*(s: string): DndCharMode =
   result = to[DndCharMode](s)
 
+when isMainModule:
+    import unittest
+
+    test "modifiers":
+      check:
+        modifier(10) == 0
+        modifier(11) == 0
+        modifier(12) == 1
+        modifier(13) == 1
+        modifier(14) == 2
+        modifier(19) == 4
+        modifier(20) == 5
+        modifier(9) == -1
+        modifier(8) == -1
+        modifier(4) == -3
+        modifier(3) == -4
