@@ -8,6 +8,7 @@ const modeName* = "dndchar"
 type
   DndCharMode* = ref object of Mode
     str, dex, con, intelligence, wis, cha: int
+    class: Class
     level: int
 
   CommandKind = enum
@@ -19,6 +20,10 @@ type
   Command = object
     kind: CommandKind
     args: seq[string]
+
+  Class = enum
+    Barbarian, Bard, Cleric, Druid, Fighter, Monk, Paladin, Ranger, Rogue,
+    Sorc, Warlock, Wizard
 
 func initDndCharMode*(): DndCharMode =
   DndCharMode(
@@ -50,6 +55,21 @@ const commands = attrStrings.concat({
   Set: "set",
 }.toTable)
 
+const saveProficiencies = {
+  Barbarian: [StrSave, ConSave],
+  Bard: [DexSave, ChaSave],
+  Cleric: [WisSave, ChaSave],
+  Druid: [IntSave, WisSave],
+  Fighter: [StrSave, ConSave],
+  Monk: [StrSave, DexSave],
+  Paladin: [WisSave, ChaSave],
+  Ranger: [StrSave, DexSave],
+  Rogue: [DexSave, IntSave],
+  Sorc: [ConSave, ChaSave],
+  Warlock: [WisSave, ChaSave],
+  Wizard: [IntSave, WisSave]
+}.toTable
+
 func parse(input: string): Option[Command] =
   let lower = toLower(input).strip()
   let firstAndRest = lower.split(maxsplit=1)
@@ -68,7 +88,7 @@ proc setValue(mode: var DndCharMode, command: Command): bool =
   assert command.kind == Set
   if command.args.len == 0:
     echo "Use 'set <attr> <value>' to set a value."
-    echo "Possible attrs are 'str', 'dex', 'con', 'int', 'wis', 'cha', and 'level'"
+    echo "Possible attrs are 'str', 'dex', 'con', 'int', 'wis', 'cha', 'class' and 'level'"
     return true
 
   elif command.args.len == 1:
@@ -79,14 +99,17 @@ proc setValue(mode: var DndCharMode, command: Command): bool =
       of "int": echo mode.intelligence
       of "wis": echo mode.wis
       of "cha": echo mode.cha
+      of "class": echo mode.class
       of "level": echo mode.level
-      else: return false
+      else:
+        echo &"Unkown attribute '{command.args[0]}'"
+        return false
     return true
 
+  let attr = command.args[0]
   try:
-    let
-      attr = command.args[0]
-      value = parseInt(command.args[1])
+    let value = parseInt(command.args[1])
+    var handled = true
     case attr:
       of "str": mode.str = value
       of "dex": mode.dex = value
@@ -95,12 +118,24 @@ proc setValue(mode: var DndCharMode, command: Command): bool =
       of "wis": mode.wis = value
       of "cha": mode.cha = value
       of "level": mode.level = value
-      else:
-        echo &"Cannot set unknown attribute '{attr}'"
-        return false
-  except ValueError:
-    echo "Argument to set must be an integer"
+      else: handled = false
+
+    if handled: return true
+
+  except ValueError: discard
+
+  if attr == "class":
+    try:
+      let
+        name = command.args[1].toLowerAscii.capitalizeAscii
+        class = parseEnum[Class](name)
+      mode.class = class
+    except:
+      echo &"Unknown class '{command.args[1]}'"
+  else:
+    echo &"Cannot set unknown attribute '{attr}'"
     return false
+
   true
 
 const rollKinds = @[
@@ -108,7 +143,13 @@ const rollKinds = @[
   StrSave, DexSave, ConSave, IntSave, WisSave, ChaSave, Initiative,
 ]
 
-proc modifier(attValue: int): int = floor((attValue - 10) / 2).toInt
+func modifier(attValue: int): int = floor((attValue - 10) / 2).toInt
+
+func proficiency(level: int): int = floor((level - 1) / 4).toInt + 2
+func proficiency(mode: DndCharMode): int = proficiency(mode.level)
+func proficiencyBonus(mode: DndCharMode, kind: CommandKind): int =
+  if kind in saveProficiencies[mode.class]: proficiency(mode)
+  else: 0
 
 method tryExec*(mode: var DndCharMode, input: string): bool =
   let p = parse(input)
@@ -123,17 +164,19 @@ method tryExec*(mode: var DndCharMode, input: string): bool =
       of Int: mode.intelligence
       of Wis: mode.wis
       of Cha: mode.cha
+
       of StrSave: mode.str
       of DexSave: mode.dex
       of ConSave: mode.con
       of IntSave: mode.intelligence
       of WisSave: mode.wis
       of ChaSave: mode.cha
+
       of Initiative: mode.dex
       else: 0
 
     var roll = Roll(parts: @[RollPart(kind: DiceRoll, num: 1, sides: 20)])
-    let modifier = modifier(score)
+    let modifier = modifier(score) + mode.proficiencyBonus(kind)
     if modifier != 0:
       roll.parts.add RollPart(kind: Modifier, value: modifier)
 
@@ -169,3 +212,12 @@ when isMainModule:
         modifier(8) == -1
         modifier(4) == -3
         modifier(3) == -4
+
+    test "proficiencies":
+      check:
+        proficiency(1) == 2
+        proficiency(4) == 2
+        proficiency(5) == 3
+        proficiency(8) == 3
+        proficiency(9) == 4
+        proficiency(12) == 4
